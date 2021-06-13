@@ -1,6 +1,1 @@
 resolver: lts-17.15
-
-packages:
-  - ./webgear-server
-  - ./webgear-examples
-  - ./webgear-benchmarks

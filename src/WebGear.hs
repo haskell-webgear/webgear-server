@@ -8,8 +8,8 @@
 -- WebGear helps to build composable, type-safe HTTP API servers.
 --
 -- The documentation below gives an overview of WebGear. Example
--- programs built using WebGear are available at
--- https://github.com/rkaippully/webgear/tree/master/webgear-examples.
+-- programs built using WebGear are available under
+-- https://github.com/haskell-webgear/.
 --
 module WebGear
   ( -- * Serving HTTP APIs
