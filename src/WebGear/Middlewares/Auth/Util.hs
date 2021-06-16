@@ -24,7 +24,7 @@ import Prelude hiding (break, drop)
 import Web.HttpApiData (FromHttpApiData (..))
 import WebGear.Middlewares.Header (Header', optionalLenientHeader)
 import WebGear.Modifiers (Existence (..), ParseStyle (..))
-import WebGear.Types (MonadRouter (errorResponse), RequestMiddleware', Response, setResponseHeader,
+import WebGear.Types (MonadRouter (errorResponse), RequestMiddleware, Response, setResponseHeader,
                       unauthorized401)
 
 
@@ -32,7 +32,7 @@ import WebGear.Types (MonadRouter (errorResponse), RequestMiddleware', Response,
 type AuthorizationHeader scheme = Header' Optional Lenient "Authorization" (AuthToken scheme)
 
 authorizationHeader :: forall scheme m req a. (KnownSymbol scheme, MonadRouter m)
-                    => RequestMiddleware' m req (AuthorizationHeader scheme:req) a
+                    => RequestMiddleware m req (AuthorizationHeader scheme:req) a
 authorizationHeader = optionalLenientHeader @"Authorization" @(AuthToken scheme)
 
 -- | The protection space for authentication

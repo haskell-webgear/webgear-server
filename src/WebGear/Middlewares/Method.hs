@@ -16,7 +16,7 @@ import Control.Monad ((>=>))
 import Data.Proxy (Proxy (..))
 import qualified Network.HTTP.Types as HTTP
 import WebGear.Trait (Linked, Trait (..), probe, unlink)
-import WebGear.Types (MonadRouter (..), Request, RequestMiddleware', requestMethod)
+import WebGear.Types (MonadRouter (..), Request, RequestMiddleware, requestMethod)
 
 
 -- | A 'Trait' for capturing the HTTP method of a request
@@ -83,5 +83,5 @@ instance IsStdMethod HTTP.PATCH where
 -- 'WebGear.Middlewares.Path.match' in cases where both HTTP method
 -- and path needs to be matched.
 method :: forall t m req a. (IsStdMethod t, MonadRouter m)
-       => RequestMiddleware' m req (Method t:req) a
+       => RequestMiddleware m req (Method t:req) a
 method handler = Kleisli $ probe Method >=> either (const rejectRoute) (runKleisli handler)

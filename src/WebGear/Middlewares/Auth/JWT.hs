@@ -37,7 +37,7 @@ import WebGear.Middlewares.Auth.Util (AuthToken (..), AuthorizationHeader, Realm
                                       authorizationHeader, respondUnauthorized)
 import WebGear.Modifiers (Existence (..))
 import WebGear.Trait (HasTrait (..), Linked, Trait (..), pick, transcribe)
-import WebGear.Types (MonadRouter (..), Request, RequestMiddleware', Response, forbidden403)
+import WebGear.Types (MonadRouter (..), Request, RequestMiddleware, Response, forbidden403)
 
 
 -- | Trait for JWT authentication with a bearer token:
@@ -113,7 +113,7 @@ instance (HasTrait (AuthorizationHeader scheme) ts, MonadIO m, MonadTime m) => T
 -- the JWT is invalid.
 jwtAuth :: forall m req e t a. (MonadRouter m, MonadIO m, MonadTime m)
         => JWTAuthConfig m e t
-        -> RequestMiddleware' m req (JWTAuth m e t : req) a
+        -> RequestMiddleware m req (JWTAuth m e t : req) a
 jwtAuth = jwtAuth' @"Bearer"
 
 -- | Middleware to add optional JWT authentication protection for a
@@ -132,7 +132,7 @@ jwtAuth = jwtAuth' @"Bearer"
 -- can process the authentication error appropriately.
 optionalJWTAuth :: forall m req e t a. (MonadRouter m, MonadIO m, MonadTime m)
                 => JWTAuthConfig m e t
-                -> RequestMiddleware' m req (JWTAuth' Optional "Bearer" m e t : req) a
+                -> RequestMiddleware m req (JWTAuth' Optional "Bearer" m e t : req) a
 optionalJWTAuth = optionalJWTAuth' @"Bearer"
 
 -- | Middleware to add JWT authentication protection for a
@@ -150,7 +150,7 @@ optionalJWTAuth = optionalJWTAuth' @"Bearer"
 -- the JWT is invalid.
 jwtAuth' :: forall scheme m req e t a. (MonadRouter m, MonadIO m, MonadTime m, KnownSymbol scheme)
          => JWTAuthConfig m e t
-         -> RequestMiddleware' m req (JWTAuth' Required scheme m e t : req) a
+         -> RequestMiddleware m req (JWTAuth' Required scheme m e t : req) a
 jwtAuth' JWTAuthConfig{..} handler = authorizationHeader @scheme $ Kleisli $
   transcribe JWTAuth'{..}  >=> either mkError (runKleisli handler)
   where
@@ -176,7 +176,7 @@ jwtAuth' JWTAuthConfig{..} handler = authorizationHeader @scheme $ Kleisli $
 -- can process the authentication error appropriately.
 optionalJWTAuth' :: forall scheme m req e t a. (MonadRouter m, MonadIO m, MonadTime m, KnownSymbol scheme)
                  => JWTAuthConfig m e t
-                 -> RequestMiddleware' m req (JWTAuth' Optional scheme m e t : req) a
+                 -> RequestMiddleware m req (JWTAuth' Optional scheme m e t : req) a
 optionalJWTAuth' JWTAuthConfig{..} handler = authorizationHeader @scheme $ Kleisli $
   transcribe JWTAuth'{..} >=> either absurd (runKleisli handler)
 

@@ -41,8 +41,8 @@ import Text.Printf (printf)
 import Web.HttpApiData (FromHttpApiData (..), ToHttpApiData (..))
 import WebGear.Modifiers (Existence (..), ParseStyle (..))
 import WebGear.Trait (Linked, Trait (..), probe, unlink)
-import WebGear.Types (MonadRouter (..), Request, RequestMiddleware', Response (..),
-                      ResponseMiddleware', badRequest400, requestHeader, setResponseHeader)
+import WebGear.Types (MonadRouter (..), Request, RequestMiddleware, Response (..),
+                      ResponseMiddleware, badRequest400, requestHeader, setResponseHeader)
 
 
 -- | A 'Trait' for capturing an HTTP header of specified @name@ and
@@ -186,7 +186,7 @@ instance (KnownSymbol name, KnownSymbol val, Monad m) => Trait (HeaderMatch' Opt
 -- parsed.
 header :: forall name val m req a.
           (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-       => RequestMiddleware' m req (Header name val:req) a
+       => RequestMiddleware m req (Header name val:req) a
 header handler = Kleisli $
   probe Header' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -210,7 +210,7 @@ header handler = Kleisli $
 -- Bad Request response is returned if the header could not be parsed.
 optionalHeader :: forall name val m req a.
                   (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-               => RequestMiddleware' m req (Header' Optional Strict name val:req) a
+               => RequestMiddleware m req (Header' Optional Strict name val:req) a
 optionalHeader handler = Kleisli $
   probe Header' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -234,7 +234,7 @@ optionalHeader handler = Kleisli $
 -- Text@ in case of parse errors or @Right val@ on success.
 lenientHeader :: forall name val m req a.
                  (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-              => RequestMiddleware' m req (Header' Required Lenient name val:req) a
+              => RequestMiddleware m req (Header' Required Lenient name val:req) a
 lenientHeader handler = Kleisli $
   probe Header' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -255,7 +255,7 @@ lenientHeader handler = Kleisli $
 -- val)@. This middleware never fails.
 optionalLenientHeader :: forall name val m req a.
                          (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-                      => RequestMiddleware' m req (Header' Optional Lenient name val:req) a
+                      => RequestMiddleware m req (Header' Optional Lenient name val:req) a
 optionalLenientHeader handler = Kleisli $
   probe Header' >=> either absurd (runKleisli handler)
 
@@ -264,7 +264,7 @@ optionalLenientHeader handler = Kleisli $
 -- if the header does not exist or does not match.
 headerMatch :: forall name val m req a.
                (KnownSymbol name, KnownSymbol val, MonadRouter m)
-            => RequestMiddleware' m req (HeaderMatch name val:req) a
+            => RequestMiddleware m req (HeaderMatch name val:req) a
 headerMatch handler = Kleisli $
   probe HeaderMatch' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -281,7 +281,7 @@ headerMatch handler = Kleisli $
 -- if the header has a different value.
 optionalHeaderMatch :: forall name val m req a.
                        (KnownSymbol name, KnownSymbol val, MonadRouter m)
-                    => RequestMiddleware' m req (HeaderMatch' Optional name val:req) a
+                    => RequestMiddleware m req (HeaderMatch' Optional name val:req) a
 optionalHeaderMatch handler = Kleisli $
   probe HeaderMatch' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -301,7 +301,7 @@ optionalHeaderMatch handler = Kleisli $
 -- > requestContentTypeHeader @"application/json" handler
 --
 requestContentTypeHeader :: forall val m req a. (KnownSymbol val, MonadRouter m)
-                         => RequestMiddleware' m req (HeaderMatch "Content-Type" val:req) a
+                         => RequestMiddleware m req (HeaderMatch "Content-Type" val:req) a
 requestContentTypeHeader = headerMatch @"Content-Type" @val
 
 -- | A middleware to create or update a response header.
@@ -311,5 +311,5 @@ requestContentTypeHeader = headerMatch @"Content-Type" @val
 -- > addResponseHeader "Content-type" "application/json" handler
 --
 addResponseHeader :: forall t m req a. (ToHttpApiData t, Monad m)
-                  => HeaderName -> t -> ResponseMiddleware' m req a a
+                  => HeaderName -> t -> ResponseMiddleware m req a a
 addResponseHeader name val handler = Kleisli $ runKleisli handler >=> pure . setResponseHeader name (toHeader val)

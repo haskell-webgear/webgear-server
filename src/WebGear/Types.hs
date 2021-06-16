@@ -75,22 +75,17 @@ module WebGear.Types
   , networkAuthenticationRequired511
 
     -- * Handlers and Middlewares
-  , Handler'
   , Handler
-  , Middleware'
   , Middleware
-  , RequestMiddleware'
   , RequestMiddleware
-  , ResponseMiddleware'
   , ResponseMiddleware
 
     -- * Routing
-  , Router (..)
   , MonadRouter (..)
   , PathInfo (..)
   , RouteError (..)
+  , Router (..)
   , transform
-  , runRoute
   , toApplication
 
     -- * Modifiers
@@ -102,11 +97,23 @@ import Control.Applicative (Alternative)
 import Control.Arrow (Kleisli (..))
 import Control.Exception.Safe (MonadCatch, MonadThrow)
 import Control.Monad (MonadPlus)
-import Control.Monad.Except (ExceptT, MonadError, catchError, runExceptT, throwError)
+import Control.Monad.Except (ExceptT, MonadError (..), runExceptT)
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.State.Strict (MonadState, StateT, evalStateT)
+import Control.Monad.State.Strict (MonadState)
+import Control.Monad.Trans (lift)
+import Control.Monad.Trans.Identity as Identity
+import Control.Monad.Trans.List as List
+import Control.Monad.Trans.Maybe as Maybe
+import Control.Monad.Trans.RWS.Lazy as LazyRWS
+import Control.Monad.Trans.RWS.Strict as StrictRWS
+import Control.Monad.Trans.Reader as Reader
+import Control.Monad.Trans.State.Lazy as LazyState
+import Control.Monad.Trans.State.Strict as StrictState
+import Control.Monad.Trans.Writer.Lazy as LazyWriter
+import Control.Monad.Trans.Writer.Strict as StrictWriter
 import Data.ByteString (ByteString)
-import Data.ByteString.Conversion.To (ToByteString, toByteString)
+import Data.ByteString.Conversion (ToByteString)
+import Data.ByteString.Conversion.To (toByteString)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
 import Data.List (find)
@@ -351,10 +358,7 @@ networkAuthenticationRequired511 = respond HTTP.networkAuthenticationRequired511
 --
 -- The type level list @req@ contains all the traits expected to be
 -- present in the request.
-type Handler' m req a = Kleisli m (Linked req Request) (Response a)
-
--- | A handler that runs on the 'Router' monad.
-type Handler req a = Handler' Router req a
+type Handler m req a = Kleisli m (Linked req Request) (Response a)
 
 -- | A middleware takes a handler as input and produces another
 -- handler that usually adds some functionality.
@@ -366,32 +370,15 @@ type Handler req a = Handler' Router req a
 --   * Use the linked value of any of the request traits.
 --   * Change the response body.
 --
-type Middleware' m req req' a' a = Handler' m req' a' -> Handler' m req a
-
--- | A middleware that runs on the 'Router' monad.
-type Middleware req req' a' a = Middleware' Router req req' a' a
+type Middleware m req req' a' a = Handler m req' a' -> Handler m req a
 
 -- | A middleware that manipulates only the request traits and passes
 -- the response through.
-type RequestMiddleware' m req req' a = Middleware' m req req' a a
-
--- | A request middleware that runs on the 'Router' monad.
-type RequestMiddleware req req' a = RequestMiddleware' Router req req' a
+type RequestMiddleware m req req' a = Middleware m req req' a a
 
 -- | A middleware that manipulates only the response and passes the
 -- request through.
-type ResponseMiddleware' m req a' a = Middleware' m req req a' a
-
--- | A response middleware that runs on the 'Router' monad.
-type ResponseMiddleware req a' a = ResponseMiddleware' Router req a' a
-
--- | A natural transformation of handler monads.
---
--- This is useful if you want to run a handler in a monad other than
--- 'Router'.
---
-transform :: (forall x. m x -> n x) -> Handler' m req a -> Handler' n req a
-transform f (Kleisli mf) = Kleisli $ f . mf
+type ResponseMiddleware m req a' a = Middleware m req req a' a
 
 -- | The path components to be matched by routing machinery
 newtype PathInfo = PathInfo [Text]
@@ -415,18 +402,8 @@ instance Semigroup RouteError where
 instance Monoid RouteError where
   mempty = RouteMismatch
 
--- | The monad for routing.
-newtype Router a = Router
-  { unRouter :: StateT PathInfo (ExceptT RouteError IO) a }
-  deriving newtype ( Functor, Applicative, Alternative, Monad, MonadPlus
-                   , MonadError RouteError
-                   , MonadState PathInfo
-                   , MonadIO
-                   , MonadThrow, MonadCatch
-                   )
-
 -- | HTTP request routing with short circuiting behavior.
-class (MonadState PathInfo m, Alternative m, MonadPlus m) => MonadRouter m where
+class Monad m => MonadRouter m where
   -- | Mark the current route as rejected, alternatives can be tried
   rejectRoute :: m a
 
@@ -435,6 +412,24 @@ class (MonadState PathInfo m, Alternative m, MonadPlus m) => MonadRouter m where
 
   -- | Handle an error response
   catchErrorResponse :: m a -> (Response LBS.ByteString -> m a) -> m a
+
+-- | The default monad for routing.
+--
+-- A handler in this monad can be converted to a Wai @Application@
+-- using @toApplication@ and then run it via Warp.
+newtype Router a = Router
+  { unRouter :: StrictState.StateT PathInfo (ExceptT RouteError IO) a }
+  deriving newtype ( Functor
+                   , Applicative
+                   , Alternative
+                   , Monad
+                   , MonadPlus
+                   , MonadError RouteError
+                   , MonadState PathInfo
+                   , MonadIO
+                   , MonadThrow
+                   , MonadCatch
+                   )
 
 instance MonadRouter Router where
   rejectRoute :: Router a
@@ -449,18 +444,79 @@ instance MonadRouter Router where
       f RouteMismatch       = rejectRoute
       f (ErrorResponse res) = handle res
 
+instance MonadRouter m => MonadRouter (IdentityT m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = Identity.liftCatch catchErrorResponse
 
--- | Convert a routable handler into a plain function from request to response.
-runRoute :: ToByteString a => Handler '[] a -> (Wai.Request -> IO Wai.Response)
-runRoute route req = waiResponse . addServerHeader . either routeErrorToResponse id <$> runRouter
+instance MonadRouter m => MonadRouter (MaybeT m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = Maybe.liftCatch catchErrorResponse
+
+instance MonadRouter m => MonadRouter (ListT m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = List.liftCatch catchErrorResponse
+
+instance (Monoid w, MonadRouter m) => MonadRouter (StrictWriter.WriterT w m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = StrictWriter.liftCatch catchErrorResponse
+
+instance (Monoid w, MonadRouter m) => MonadRouter (LazyWriter.WriterT w m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = LazyWriter.liftCatch catchErrorResponse
+
+instance MonadRouter m => MonadRouter (StrictState.StateT s m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = StrictState.liftCatch catchErrorResponse
+
+instance MonadRouter m => MonadRouter (LazyState.StateT s m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = LazyState.liftCatch catchErrorResponse
+
+instance MonadRouter m => MonadRouter (ReaderT r m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = Reader.liftCatch catchErrorResponse
+
+instance (MonadRouter m, Monoid w) => MonadRouter (StrictRWS.RWST r w s m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = StrictRWS.liftCatch catchErrorResponse
+
+instance (MonadRouter m, Monoid w) => MonadRouter (LazyRWS.RWST r w s m) where
+  rejectRoute = lift rejectRoute
+  errorResponse = lift . errorResponse
+  catchErrorResponse = LazyRWS.liftCatch catchErrorResponse
+
+
+-- | A natural transformation of handler monads.
+--
+-- This is useful if you want to run a handler in a monad other than
+-- 'Router' and then use 'toApplication' to convert it to a wai
+-- application.
+transform :: (forall x. m x -> n x) -> Handler m req a -> Handler n req a
+transform f (Kleisli mf) = Kleisli $ f . mf
+
+-- | Convert a handler in the @Router@ monad into a Wai application
+toApplication :: ToByteString a => Handler Router '[] a -> Wai.Application
+toApplication handler request cont = runHandler >>= cont
   where
-    runRouter :: IO (Either RouteError (Response LBS.ByteString))
-    runRouter = fmap (fmap (fmap toByteString))
-                $ runExceptT
-                $ flip evalStateT (PathInfo $ pathInfo req)
-                $ unRouter
-                $ runKleisli route
-                $ linkzero req
+    runHandler :: IO Wai.Response
+    runHandler = waiResponse . addServerHeader . either routeErrorToResponse id <$> handlerResult
+
+    handlerResult :: IO (Either RouteError (Response LBS.ByteString))
+    handlerResult = fmap (fmap (fmap toByteString))
+                    $ runExceptT
+                    $ flip StrictState.evalStateT (PathInfo $ pathInfo request)
+                    $ unRouter
+                    $ runKleisli handler
+                    $ linkzero request
 
     routeErrorToResponse :: RouteError -> Response LBS.ByteString
     routeErrorToResponse RouteMismatch     = notFound404
@@ -472,6 +528,3 @@ runRoute route req = waiResponse . addServerHeader . either routeErrorToResponse
     serverHeader :: HTTP.Header
     serverHeader = (HTTP.hServer, fromString $ "WebGear/" ++ showVersion version)
 
--- | Convert a routable handler into a Wai application
-toApplication :: ToByteString a => Handler '[] a -> Wai.Application
-toApplication route request next = runRoute route request >>= next

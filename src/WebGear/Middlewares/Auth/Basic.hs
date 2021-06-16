@@ -33,7 +33,7 @@ import WebGear.Middlewares.Auth.Util (AuthToken (..), AuthorizationHeader, Realm
                                       authorizationHeader, respondUnauthorized)
 import WebGear.Modifiers (Existence (..))
 import WebGear.Trait (HasTrait (..), Linked, Trait (..), pick, transcribe)
-import WebGear.Types (MonadRouter (..), Request, RequestMiddleware', Response, forbidden403)
+import WebGear.Types (MonadRouter (..), Request, RequestMiddleware, Response, forbidden403)
 
 
 -- | Trait for HTTP basic authentication: https://tools.ietf.org/html/rfc7617
@@ -116,7 +116,7 @@ instance (HasTrait (AuthorizationHeader "Basic") ts, Monad m) => Trait (BasicAut
 -- t.
 basicAuth :: forall m req e t a. MonadRouter m
           => BasicAuthConfig m e t
-          -> RequestMiddleware' m req (BasicAuth m e t : req) a
+          -> RequestMiddleware m req (BasicAuth m e t : req) a
 basicAuth BasicAuthConfig{..} handler = authorizationHeader @"Basic" $ Kleisli $
   transcribe BasicAuth'{..} >=> either mkError (runKleisli handler)
   where
@@ -136,6 +136,6 @@ basicAuth BasicAuthConfig{..} handler = authorizationHeader @"Basic" $ Kleisli $
 -- authentication error appropriately.
 optionalBasicAuth :: forall m req e t a. MonadRouter m
                   => BasicAuthConfig m e t
-                  -> RequestMiddleware' m req (BasicAuth' Optional m e t : req) a
+                  -> RequestMiddleware m req (BasicAuth' Optional m e t : req) a
 optionalBasicAuth BasicAuthConfig{..} handler = authorizationHeader @"Basic" $ Kleisli $
   transcribe BasicAuth'{..} >=> either absurd (runKleisli handler)

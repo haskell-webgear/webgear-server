@@ -33,7 +33,7 @@ import Text.Printf (printf)
 import Web.HttpApiData (FromHttpApiData (..))
 import WebGear.Modifiers (Existence (..), ParseStyle (..))
 import WebGear.Trait (Linked, Trait (..), probe, unlink)
-import WebGear.Types (MonadRouter (..), Request, RequestMiddleware', Response (..), badRequest400,
+import WebGear.Types (MonadRouter (..), Request, RequestMiddleware, Response (..), badRequest400,
                       queryString)
 
 
@@ -123,7 +123,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' 
 -- respond with a 400 Bad Request response if the query parameter is
 -- not found or could not be parsed.
 queryParam :: forall name val m req a. (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-           => RequestMiddleware' m req (QueryParam name val:req) a
+           => RequestMiddleware m req (QueryParam name val:req) a
 queryParam handler = Kleisli $
   probe QueryParam' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -147,7 +147,7 @@ queryParam handler = Kleisli $
 -- value indicates a missing param. A 400 Bad Request response is
 -- returned if the query parameter could not be parsed.
 optionalQueryParam :: forall name val m req a. (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-                   => RequestMiddleware' m req (QueryParam' Optional Strict name val:req) a
+                   => RequestMiddleware m req (QueryParam' Optional Strict name val:req) a
 optionalQueryParam handler = Kleisli $
   probe QueryParam' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -169,7 +169,7 @@ optionalQueryParam handler = Kleisli $
 -- missing. The parsing is done leniently; the trait attribute is set
 -- to @Left Text@ in case of parse errors or @Right val@ on success.
 lenientQueryParam :: forall name val m req a. (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-                  => RequestMiddleware' m req (QueryParam' Required Lenient name val:req) a
+                  => RequestMiddleware m req (QueryParam' Required Lenient name val:req) a
 lenientQueryParam handler = Kleisli $
   probe QueryParam' >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -189,6 +189,6 @@ lenientQueryParam handler = Kleisli $
 -- The associated trait attribute has type @Maybe (Either Text
 -- val)@. This middleware never fails.
 optionalLenientQueryParam :: forall name val m req a. (KnownSymbol name, FromHttpApiData val, MonadRouter m)
-                          => RequestMiddleware' m req (QueryParam' Optional Lenient name val:req) a
+                          => RequestMiddleware m req (QueryParam' Optional Lenient name val:req) a
 optionalLenientQueryParam handler = Kleisli $
   probe QueryParam' >=> either absurd (runKleisli handler)

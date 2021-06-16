@@ -32,7 +32,7 @@ import Prelude hiding (drop, filter, take)
 import Web.HttpApiData (FromHttpApiData (..))
 import WebGear.Middlewares.Method (method)
 import WebGear.Trait (Linked, Trait (..), probe)
-import WebGear.Types (MonadRouter (..), PathInfo (..), Request, RequestMiddleware')
+import WebGear.Types (MonadRouter (..), PathInfo (..), Request, RequestMiddleware)
 import WebGear.Util (splitOn)
 
 
@@ -116,8 +116,8 @@ instance MonadState PathInfo m => Trait PathEnd ts Request m where
 --
 -- > path @"a/b/c" handler
 --
-path :: forall s ts m a. (KnownSymbol s, MonadRouter m)
-     => RequestMiddleware' m ts (Path s:ts) a
+path :: forall s ts m a. (KnownSymbol s, MonadRouter m, MonadState PathInfo m)
+     => RequestMiddleware m ts (Path s:ts) a
 path handler = Kleisli $
   probe Path >=> either (const rejectRoute) (runKleisli handler)
 
@@ -134,13 +134,13 @@ path handler = Kleisli $
 --
 -- > pathVar @"objId" @Int handler
 --
-pathVar :: forall tag val ts m a. (FromHttpApiData val, MonadRouter m)
-        => RequestMiddleware' m ts (PathVar tag val:ts) a
+pathVar :: forall tag val ts m a. (FromHttpApiData val, MonadRouter m, MonadState PathInfo m)
+        => RequestMiddleware m ts (PathVar tag val:ts) a
 pathVar handler = Kleisli $
   probe PathVar >=> either (const rejectRoute) (runKleisli handler)
 
 -- | A middleware that verifies that end of path is reached.
-pathEnd :: MonadRouter m => RequestMiddleware' m ts (PathEnd:ts) a
+pathEnd :: (MonadRouter m, MonadState PathInfo m) => RequestMiddleware m ts (PathEnd:ts) a
 pathEnd handler = Kleisli $
   probe PathEnd >=> either (const rejectRoute) (runKleisli handler)
 

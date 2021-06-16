@@ -90,9 +90,10 @@ library
                     , WebGear.Util
   autogen-modules:    Paths_webgear_server
   hs-source-dirs:     src
-  build-depends:      mime-types           ==0.1.*
+  build-depends:      jose                 >=0.8.2.0 && <0.9
+                    , mime-types           ==0.1.*
                     , monad-time           ==0.3.1.0
-                    , jose                 >=0.8.2.0 && <0.9
+                    , transformers         ==0.5.*
 
 test-suite webgear-server-test
   import:             webgear-common

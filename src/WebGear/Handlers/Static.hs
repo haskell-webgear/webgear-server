@@ -16,7 +16,7 @@ import Control.Monad.State.Strict (MonadState (..))
 import Prelude hiding (readFile)
 import System.FilePath (joinPath, takeFileName, (</>))
 
-import WebGear.Types (Handler', MonadRouter (..), PathInfo (..), Response, notFound404, ok200,
+import WebGear.Types (Handler, MonadRouter (..), PathInfo (..), Response, notFound404, ok200,
                       setResponseHeader)
 
 import qualified Data.ByteString.Lazy as LBS
@@ -24,10 +24,10 @@ import qualified Data.Text as Text
 import qualified Network.Mime as Mime
 
 
-serveDir :: (MonadRouter m, MonadIO m)
+serveDir :: (MonadRouter m, MonadState PathInfo m, MonadIO m)
          => FilePath          -- ^ directory to serve
          -> Maybe FilePath    -- ^ index filename for the root directory
-         -> Handler' m req LBS.ByteString
+         -> Handler m req LBS.ByteString
 serveDir root index = Kleisli $ \_req -> do
   PathInfo restPath <- get
   case restPath of

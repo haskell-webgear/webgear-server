@@ -20,8 +20,8 @@ import Data.Text (Text, pack)
 import Data.Text.Encoding (encodeUtf8)
 import Network.HTTP.Types (hContentType)
 import WebGear.Trait (Linked, Trait (..), probe, unlink)
-import WebGear.Types (MonadRouter (..), Request, RequestMiddleware', Response (..),
-                      ResponseMiddleware', badRequest400, getRequestBodyChunk, setResponseHeader)
+import WebGear.Types (MonadRouter (..), Request, RequestMiddleware, Response (..),
+                      ResponseMiddleware, badRequest400, getRequestBodyChunk, setResponseHeader)
 import WebGear.Util (takeWhileM)
 
 
@@ -50,7 +50,7 @@ instance (FromJSON t, MonadIO m) => Trait (JSONBody t) ts Request m where
 --
 -- Returns a 400 Bad Request response on failure to parse body.
 jsonRequestBody :: forall t m req a. (FromJSON t, MonadRouter m, MonadIO m)
-                => RequestMiddleware' m req (JSONBody t:req) a
+                => RequestMiddleware m req (JSONBody t:req) a
 jsonRequestBody handler = Kleisli $
   probe JSONBody >=> either (errorResponse . mkError) (runKleisli handler)
   where
@@ -67,7 +67,7 @@ jsonRequestBody handler = Kleisli $
 --
 -- > jsonResponseBody @t handler
 --
-jsonResponseBody :: (ToJSON t, Monad m) => ResponseMiddleware' m req t ByteString
+jsonResponseBody :: (ToJSON t, Monad m) => ResponseMiddleware m req t ByteString
 jsonResponseBody handler = Kleisli $ \req -> do
   x <- runKleisli handler req
   pure $ setResponseHeader hContentType "application/json" $ encode <$> x
