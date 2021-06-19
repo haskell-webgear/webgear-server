@@ -38,6 +38,7 @@ jobs:
         with:
           ghc-version: ${{ matrix.ghc }}
           enable-stack: true
+          stack-version: 2.7.1
 
       - uses: actions/cache@v2
         name: Cache dependencies
