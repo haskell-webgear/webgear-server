@@ -17,14 +17,14 @@ jobs:
           - ubuntu-latest
           - macos-latest
         ghc:
+          - 9.0.1
           - 8.10.4
           - 8.8.4
-          - 8.6.5
         exclude:
           - os: macos-latest
-            ghc: 8.8.4
+            ghc: 8.10.4
           - os: macos-latest
-            ghc: 8.6.5
+            ghc: 8.8.4
 
     env:
       STACK_YAML: stack-${{ matrix.ghc }}.yaml
@@ -38,6 +38,7 @@ jobs:
         with:
           ghc-version: ${{ matrix.ghc }}
           enable-stack: true
+          stack-version: 2.7.1
 
       - uses: actions/cache@v2
         name: Cache dependencies
@@ -75,14 +76,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         ghc:
+          - 9.0.1
           - 8.10.4
           - 8.8.4
-          - 8.6.5
         exclude:
           - os: macos-latest
-            ghc: 8.8.4
+            ghc: 8.10.4
           - os: macos-latest
-            ghc: 8.6.5
+            ghc: 8.8.4
 
     env:
       CONFIG: "--enable-tests --enable-benchmarks"
