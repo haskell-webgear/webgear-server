@@ -78,7 +78,7 @@ parseCreds AuthToken{..} =
     u:ps -> pure $ Credentials (Username u) (Password $ intercalate ":" ps)
 
 
-instance (HasTrait (AuthorizationHeader "Basic") ts, Monad m) => Trait (BasicAuth' Required m e a) ts Request m where
+instance (HasTrait (AuthorizationHeader "Basic") ts, Monad m) => Trait m (BasicAuth' Required m e a) ts Request where
   type Attribute (BasicAuth' Required m e a) Request = a
   type Absence (BasicAuth' Required m e a) Request = BasicAuthError e
 
@@ -94,7 +94,7 @@ instance (HasTrait (AuthorizationHeader "Basic") ts, Monad m) => Trait (BasicAut
       validateCreds :: Credentials -> m (Either (BasicAuthError e) a)
       validateCreds creds = first BasicAuthAttributeError <$> toBasicAttribute creds
 
-instance (HasTrait (AuthorizationHeader "Basic") ts, Monad m) => Trait (BasicAuth' Optional m e a) ts Request m where
+instance (HasTrait (AuthorizationHeader "Basic") ts, Monad m) => Trait m (BasicAuth' Optional m e a) ts Request where
   type Attribute (BasicAuth' Optional m e a) Request = Either (BasicAuthError e) a
   type Absence (BasicAuth' Optional m e a) Request = Void
 

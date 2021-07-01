@@ -63,7 +63,7 @@ deriveRequestParam proxy req cont =
       params = queryToQueryText $ queryString $ unlink req
   in cont $ parseQueryParam <$> (find ((== name) . fst) params >>= snd)
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' Required Strict name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (QueryParam' Required Strict name val) ts Request where
   type Attribute (QueryParam' Required Strict name val) Request = val
   type Absence (QueryParam' Required Strict name val) Request = Either ParamNotFound ParamParseError
 
@@ -75,7 +75,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' 
     Just (Left e)  -> Left $ Right $ ParamParseError e
     Just (Right x) -> Right x
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' Optional Strict name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (QueryParam' Optional Strict name val) ts Request where
   type Attribute (QueryParam' Optional Strict name val) Request = Maybe val
   type Absence (QueryParam' Optional Strict name val) Request = ParamParseError
 
@@ -87,7 +87,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' 
     Just (Left e)  -> Left $ ParamParseError e
     Just (Right x) -> Right $ Just x
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' Required Lenient name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (QueryParam' Required Lenient name val) ts Request where
   type Attribute (QueryParam' Required Lenient name val) Request = Either Text val
   type Absence (QueryParam' Required Lenient name val) Request = ParamNotFound
 
@@ -99,7 +99,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' 
     Just (Left e)  -> Right $ Left e
     Just (Right x) -> Right $ Right x
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (QueryParam' Optional Lenient name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (QueryParam' Optional Lenient name val) ts Request where
   type Attribute (QueryParam' Optional Lenient name val) Request = Maybe (Either Text val)
   type Absence (QueryParam' Optional Lenient name val) Request = Void
 

@@ -28,7 +28,7 @@ data MethodMismatch = MethodMismatch
   , actualMethod   :: HTTP.Method
   }
 
-instance (IsStdMethod t, Monad m) => Trait (Method t) ts Request m where
+instance (IsStdMethod t, Monad m) => Trait m (Method t) ts Request where
   type Attribute (Method t) Request = HTTP.StdMethod
   type Absence (Method t) Request = MethodMismatch
 

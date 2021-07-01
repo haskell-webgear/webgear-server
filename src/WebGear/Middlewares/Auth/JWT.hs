@@ -70,7 +70,7 @@ data JWTAuthError e = JWTAuthHeaderMissing
 parseJWT :: AuthToken scheme -> Either JWT.JWTError JWT.SignedJWT
 parseJWT AuthToken{..} = JWT.decodeCompact $ fromStrict authToken
 
-instance (HasTrait (AuthorizationHeader scheme) ts, MonadIO m, MonadTime m) => Trait (JWTAuth' Required scheme m e a) ts Request m where
+instance (HasTrait (AuthorizationHeader scheme) ts, MonadIO m, MonadTime m) => Trait m (JWTAuth' Required scheme m e a) ts Request where
   type Attribute (JWTAuth' Required scheme m e a) Request = a
   type Absence (JWTAuth' Required scheme m e a) Request = JWTAuthError e
 
@@ -88,7 +88,7 @@ instance (HasTrait (AuthorizationHeader scheme) ts, MonadIO m, MonadTime m) => T
         claims <- withExceptT JWTAuthTokenBadFormat $ JWT.verifyClaims jwtValidationSettings jwkSet jwt
         lift (toJWTAttribute claims) >>= either (throwError . JWTAuthAttributeError) pure
 
-instance (HasTrait (AuthorizationHeader scheme) ts, MonadIO m, MonadTime m) => Trait (JWTAuth' Optional scheme m e a) ts Request m where
+instance (HasTrait (AuthorizationHeader scheme) ts, MonadIO m, MonadTime m) => Trait m (JWTAuth' Optional scheme m e a) ts Request where
   type Attribute (JWTAuth' Optional scheme m e a) Request = Either (JWTAuthError e) a
   type Absence (JWTAuth' Optional scheme m e a) Request = Void
 

@@ -28,7 +28,7 @@ import WebGear.Util (takeWhileM)
 -- | A 'Trait' for converting a JSON body into a value.
 data JSONBody (t :: Type) = JSONBody
 
-instance (FromJSON t, MonadIO m) => Trait (JSONBody t) ts Request m where
+instance (FromJSON t, MonadIO m) => Trait m (JSONBody t) ts Request where
   type Attribute (JSONBody t) Request = t
   type Absence (JSONBody t) Request = Text
 

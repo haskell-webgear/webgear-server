@@ -40,7 +40,7 @@ import WebGear.Util (splitOn)
 -- but discarded after that.
 data Path (s :: Symbol) = Path
 
-instance (KnownSymbol s, MonadState PathInfo m) => Trait (Path s) ts Request m where
+instance (KnownSymbol s, MonadState PathInfo m) => Trait m (Path s) ts Request where
   type Attribute (Path s) Request = ()
   type Absence (Path s) Request = ()
 
@@ -71,7 +71,7 @@ data PathVar tag val = PathVar
 data PathVarError = PathVarNotFound | PathVarParseError Text
   deriving (Eq, Show, Read)
 
-instance (FromHttpApiData val, MonadState PathInfo m) => Trait (PathVar tag val) ts Request m where
+instance (FromHttpApiData val, MonadState PathInfo m) => Trait m (PathVar tag val) ts Request where
   type Attribute (PathVar tag val) Request = val
   type Absence (PathVar tag val) Request = PathVarError
 
@@ -91,7 +91,7 @@ instance (FromHttpApiData val, MonadState PathInfo m) => Trait (PathVar tag val)
 -- | Trait to indicate that no more path components are present in the request
 data PathEnd = PathEnd
 
-instance MonadState PathInfo m => Trait PathEnd ts Request m where
+instance MonadState PathInfo m => Trait m PathEnd ts Request where
   type Attribute PathEnd Request = ()
   type Absence PathEnd Request = ()
 

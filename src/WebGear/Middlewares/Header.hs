@@ -70,7 +70,7 @@ deriveRequestHeader proxy req cont =
   in cont $ parseHeader <$> requestHeader s (unlink req)
 
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Required Strict name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (Header' Required Strict name val) ts Request where
   type Attribute (Header' Required Strict name val) Request = val
   type Absence (Header' Required Strict name val) Request = Either HeaderNotFound HeaderParseError
 
@@ -83,7 +83,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Requ
     Just (Right x) -> Right x
 
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Optional Strict name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (Header' Optional Strict name val) ts Request where
   type Attribute (Header' Optional Strict name val) Request = Maybe val
   type Absence (Header' Optional Strict name val) Request = HeaderParseError
 
@@ -96,7 +96,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Opti
     Just (Right x) -> Right $ Just x
 
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Required Lenient name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (Header' Required Lenient name val) ts Request where
   type Attribute (Header' Required Lenient name val) Request = Either Text val
   type Absence (Header' Required Lenient name val) Request = HeaderNotFound
 
@@ -109,7 +109,7 @@ instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Requ
     Just (Right x) -> Right $ Right x
 
 
-instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait (Header' Optional Lenient name val) ts Request m where
+instance (KnownSymbol name, FromHttpApiData val, Monad m) => Trait m (Header' Optional Lenient name val) ts Request where
   type Attribute (Header' Optional Lenient name val) Request = Maybe (Either Text val)
   type Absence (Header' Optional Lenient name val) Request = Void
 
@@ -139,7 +139,7 @@ data HeaderMismatch = HeaderMismatch
   deriving stock (Eq, Read, Show)
 
 
-instance (KnownSymbol name, KnownSymbol val, Monad m) => Trait (HeaderMatch' Required name val) ts Request m where
+instance (KnownSymbol name, KnownSymbol val, Monad m) => Trait m (HeaderMatch' Required name val) ts Request where
   type Attribute (HeaderMatch' Required name val) Request = ByteString
   type Absence (HeaderMatch' Required name val) Request = Maybe HeaderMismatch
 
@@ -156,7 +156,7 @@ instance (KnownSymbol name, KnownSymbol val, Monad m) => Trait (HeaderMatch' Req
         Just hv | hv == expected -> Right hv
                 | otherwise      -> Left $ Just HeaderMismatch {expectedHeader = expected, actualHeader = hv}
 
-instance (KnownSymbol name, KnownSymbol val, Monad m) => Trait (HeaderMatch' Optional name val) ts Request m where
+instance (KnownSymbol name, KnownSymbol val, Monad m) => Trait m (HeaderMatch' Optional name val) ts Request where
   type Attribute (HeaderMatch' Optional name val) Request = Maybe ByteString
   type Absence (HeaderMatch' Optional name val) Request = HeaderMismatch
 

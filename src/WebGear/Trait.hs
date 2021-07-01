@@ -44,7 +44,7 @@ import GHC.TypeLits (ErrorMessage (..), TypeError)
 
 -- | A trait is an optional attribute @t@ associated with a value
 -- @a@.
-class Monad m => Trait (t :: Type) (ts :: [Type]) a m where
+class Monad m => Trait m (t :: Type) (ts :: [Type]) a where
   -- | Type of the associated attribute when the trait holds for a
   -- value
   type Attribute t a :: Type
@@ -74,7 +74,7 @@ linkzero = Linked ()
 -- | Attempt to link an additional trait with an already linked value
 -- via the 'toAttribute' operation. This can fail indicating an
 -- 'Absence' of the trait.
-probe :: forall t ts a m. Trait t ts a m
+probe :: forall t ts m a. Trait m t ts a
       => t
       -> Linked ts a
       -> m (Either (Absence t a) (Linked (t:ts) a))
@@ -88,7 +88,7 @@ probe t l@Linked{..} = fmap link <$> tryLink t l
 -- Like 'probe', but instead of adding a new trait to the trait list,
 -- uses the first trait in the list to probe the presence of a new
 -- trait and replaces the old trait with the new one.
-transcribe :: forall t2 t1 ts a m. Trait t2 (t1:ts) a m
+transcribe :: forall t2 t1 ts m a. Trait m t2 (t1:ts) a
            => t2
            -> Linked (t1:ts) a
            -> m (Either (Absence t2 a) (Linked (t2:ts) a))
