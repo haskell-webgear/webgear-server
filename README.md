@@ -1,5 +1,7 @@
 # WebGear - HTTP API server
 
+**This repository is archived. See the latest version at https://github.com/haskell-webgear/webgear.**
+
 [![Hackage](https://img.shields.io/hackage/v/webgear-server)](https://hackage.haskell.org/package/webgear-server)
 [![Build Status](https://img.shields.io/github/workflow/status/haskell-webgear/webgear-server/Haskell%20CI/master)](https://github.com/haskell-webgear/webgear-server/actions?query=workflow%3A%22Haskell+CI%22+branch%3Amaster)
 
